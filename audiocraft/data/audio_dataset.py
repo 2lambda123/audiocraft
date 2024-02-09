@@ -36,6 +36,17 @@ class BaseInfo:
 
     @classmethod
     def _dict2fields(cls, dictionary: dict):
+        """Converts a dictionary to a class instance.
+        Parameters:
+            - cls (type): The class to convert the dictionary to.
+            - dictionary (dict): The dictionary to convert to a class instance.
+        Returns:
+            - type: The class instance created from the dictionary.
+        Processing Logic:
+            - Get all fields from the class.
+            - Filter out fields that are not in the dictionary.
+            - Create a dictionary with field names as keys and corresponding values from the dictionary."""
+        
         return {
             field.name: dictionary[field.name]
             for field in fields(cls) if field.name in dictionary
@@ -43,10 +54,14 @@ class BaseInfo:
 
     @classmethod
     def from_dict(cls, dictionary: dict):
+        """"""
+        
         _dictionary = cls._dict2fields(dictionary)
         return cls(**_dictionary)
 
     def to_dict(self):
+        """"""
+        
         return {
             field.name: self.__getattribute__(field.name)
             for field in fields(self)
@@ -65,12 +80,25 @@ class AudioMeta(BaseInfo):
 
     @classmethod
     def from_dict(cls, dictionary: dict):
+        """Converts a dictionary into an instance of the provided class.
+        Parameters:
+            - cls (class): The class to be instantiated.
+            - dictionary (dict): The dictionary to be converted into an instance.
+        Returns:
+            - instance (class): An instance of the provided class.
+        Processing Logic:
+            - Converts dictionary to instance.
+            - Handles 'info_path' key if present.
+            - Uses PathInZip class if 'info_path' is not None."""
+        
         base = cls._dict2fields(dictionary)
         if 'info_path' in base and base['info_path'] is not None:
             base['info_path'] = PathInZip(base['info_path'])
         return cls(**base)
 
     def to_dict(self):
+        """"""
+        
         d = super().to_dict()
         if d['info_path'] is not None:
             d['info_path'] = str(d['info_path'])
@@ -287,6 +315,8 @@ class AudioDataset:
                  min_audio_duration: tp.Optional[float] = None,
                  max_audio_duration: tp.Optional[float] = None
                  ):
+        """"""
+        
         assert len(meta) > 0, 'No audio meta provided to AudioDataset. Please check loading of audio meta.'
         assert segment_duration is None or segment_duration > 0
         assert segment_duration is None or min_segment_ratio >= 0
@@ -319,6 +349,8 @@ class AudioDataset:
         self.return_info = return_info
 
     def __len__(self):
+        """"""
+        
         return self.num_samples
 
     def _get_sampling_probabilities(self, normalized: bool = True):
@@ -351,6 +383,8 @@ class AudioDataset:
         return self.meta[file_index]
 
     def __getitem__(self, index: int) -> tp.Union[torch.Tensor, tp.Tuple[torch.Tensor, SegmentInfo]]:
+        """"""
+        
         if self.segment_duration is None:
             file_meta = self.meta[index]
             out, sr = audio_read(file_meta.path)
@@ -498,6 +532,8 @@ class AudioDataset:
 
 
 def main():
+    """"""
+    
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)
     parser = argparse.ArgumentParser(
         prog='audio_dataset',
