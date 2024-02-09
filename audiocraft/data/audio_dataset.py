@@ -14,7 +14,6 @@ import json
 import logging
 import os
 from pathlib import Path
-import random
 import sys
 import typing as tp
 
@@ -24,6 +23,7 @@ import torch.nn.functional as F
 from .audio import audio_read, audio_info
 from .audio_utils import convert_audio
 from .zip import PathInZip
+import secrets
 
 try:
     import dora
@@ -362,7 +362,7 @@ class AudioDataset:
             rng = torch.Generator()
             if self.shuffle:
                 # We use index, plus extra randomness
-                rng.manual_seed(index + self.num_samples * random.randint(0, 2**24))
+                rng.manual_seed(index + self.num_samples * secrets.SystemRandom().randint(0, 2**24))
             else:
                 # We only use index
                 rng.manual_seed(index)
