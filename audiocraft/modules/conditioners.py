@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 from itertools import chain
 import logging
 import math
-import random
 import re
 import typing as tp
 import warnings
@@ -31,6 +30,7 @@ from .transformer import create_sin_embedding
 from ..data.audio_dataset import SegmentInfo
 from ..utils.autocast import TorchAutocast
 from ..utils.utils import hash_trick, length_to_mask, collate
+import secrets
 
 
 logger = logging.getLogger(__name__)
@@ -392,7 +392,7 @@ class T5Conditioner(TextConditioner):
         if self.word_dropout > 0. and self.training:
             new_entries = []
             for entry in entries:
-                words = [word for word in entry.split(" ") if random.random() >= self.word_dropout]
+                words = [word for word in entry.split(" ") if secrets.SystemRandom().random() >= self.word_dropout]
                 new_entries.append(" ".join(words))
             entries = new_entries
 
@@ -839,11 +839,11 @@ class ConditioningProvider(nn.Module):
 
             desc = cond.text['description']
             meta_data = ""
-            if random.uniform(0, 1) < merge_text_conditions_p:
+            if secrets.SystemRandom().uniform(0, 1) < merge_text_conditions_p:
                 meta_pairs = [f'{k}: {process_value(v)}' for k, v in cond.text.items() if is_valid(k, v)]
-                random.shuffle(meta_pairs)
+                secrets.SystemRandom().shuffle(meta_pairs)
                 meta_data = ". ".join(meta_pairs)
-                desc = desc if not random.uniform(0, 1) < drop_desc_p else None
+                desc = desc if not secrets.SystemRandom().uniform(0, 1) < drop_desc_p else None
 
             if desc is None:
                 desc = meta_data if len(meta_data) > 1 else None
