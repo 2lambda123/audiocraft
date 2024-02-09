@@ -93,21 +93,39 @@ class ConditioningAttributes:
     wav: tp.Dict[str, WavCondition] = field(default_factory=dict)
 
     def __getitem__(self, item):
+        """"""
+        
         return getattr(self, item)
 
     @property
     def text_attributes(self):
+        """"""
+        
         return self.text.keys()
 
     @property
     def wav_attributes(self):
+        """"""
+        
         return self.wav.keys()
 
     @property
     def attributes(self):
+        """"""
+        
         return {"text": self.text_attributes, "wav": self.wav_attributes}
 
     def to_flat_dict(self):
+        """"Converts a nested dictionary into a flat dictionary with keys in the format 'text.key' and 'wav.key' for easier data processing."
+        Parameters:
+            - self (dict): A nested dictionary to be converted into a flat dictionary.
+        Returns:
+            - dict: A flat dictionary with keys in the format 'text.key' and 'wav.key'.
+        Processing Logic:
+            - Combines the 'text' and 'wav' sub-dictionaries into a single flat dictionary.
+            - Uses dictionary comprehension to create keys in the format 'text.key' and 'wav.key'.
+            - The values for these keys are the corresponding values from the original sub-dictionaries."""
+        
         return {
             **{f"text.{k}": v for k, v in self.text.items()},
             **{f"wav.{k}": v for k, v in self.wav.items()},
@@ -115,6 +133,8 @@ class ConditioningAttributes:
 
     @classmethod
     def from_flat_dict(cls, x):
+        """"""
+        
         out = cls()
         for k, v in x.items():
             kind, att = k.split(".")
@@ -128,6 +148,8 @@ class SegmentWithAttributes(SegmentInfo):
     the existing attributes to a dataclass of type ConditioningAttributes.
     """
     def to_condition_attributes(self) -> ConditioningAttributes:
+        """"""
+        
         raise NotImplementedError()
 
 
@@ -140,6 +162,8 @@ class Tokenizer:
 
 
 class WhiteSpaceTokenizer(Tokenizer):
+        """"""
+        
     """This tokenizer should be used for natural language descriptions.
     For example:
     ["he didn't, know he's going home.", 'shorter sentence'] =>
@@ -150,6 +174,8 @@ class WhiteSpaceTokenizer(Tokenizer):
 
     def __init__(self, n_bins: int, pad_idx: int = 0, language: str = "en_core_web_sm",
                  lemma: bool = True, stopwords: bool = True) -> None:
+        """"""
+        
         self.n_bins = n_bins
         self.pad_idx = pad_idx
         self.lemma = lemma
@@ -221,10 +247,14 @@ class NoopTokenizer(Tokenizer):
     ["Metal", "Rock", "Classical"] => [0, 223, 51]
     """
     def __init__(self, n_bins: int, pad_idx: int = 0):
+        """"""
+        
         self.n_bins = n_bins
         self.pad_idx = pad_idx
 
     def __call__(self, texts: tp.List[tp.Optional[str]]) -> tp.Tuple[Tensor, Tensor]:
+        """"""
+        
         output, lengths = [], []
         for text in texts:
             # if current sample doesn't have a certain attribute, replace with pad token
@@ -250,6 +280,8 @@ class BaseConditioner(nn.Module):
         output_dim (int): Output dim of the conditioner.
     """
     def __init__(self, dim, output_dim):
+        """"""
+        
         super().__init__()
         self.dim = dim
         self.output_dim = output_dim
@@ -291,6 +323,8 @@ class LUTConditioner(TextConditioner):
         pad_idx (int, optional): Index for padding token. Defaults to 0.
     """
     def __init__(self, n_bins: int, dim: int, output_dim: int, tokenizer: str, pad_idx: int = 0):
+        """"""
+        
         super().__init__(dim, output_dim)
         self.embed = nn.Embedding(n_bins, dim)
         self.tokenizer: Tokenizer
@@ -302,12 +336,16 @@ class LUTConditioner(TextConditioner):
             raise ValueError(f"unrecognized tokenizer `{tokenizer}`.")
 
     def tokenize(self, x: tp.List[tp.Optional[str]]) -> tp.Tuple[torch.Tensor, torch.Tensor]:
+        """"""
+        
         device = self.embed.weight.device
         tokens, mask = self.tokenizer(x)
         tokens, mask = tokens.to(device), mask.to(device)
         return tokens, mask
 
     def forward(self, inputs: tp.Tuple[torch.Tensor, torch.Tensor]) -> ConditionType:
+        """"""
+        
         tokens, mask = inputs
         embeds = self.embed(tokens)
         embeds = self.output_proj(embeds)
@@ -346,6 +384,8 @@ class T5Conditioner(TextConditioner):
     def __init__(self, name: str, output_dim: int, finetune: bool, device: str,
                  autocast_dtype: tp.Optional[str] = 'float32', word_dropout: float = 0.,
                  normalize_text: bool = False):
+        """"""
+        
         assert name in self.MODELS, f"unrecognized t5 model name (should in {self.MODELS})"
         super().__init__(self.MODELS_DIMS[name], output_dim)
         self.device = device
@@ -385,6 +425,8 @@ class T5Conditioner(TextConditioner):
             self.text_normalizer = WhiteSpaceTokenizer(1, lemma=True, stopwords=True)
 
     def tokenize(self, x: tp.List[tp.Optional[str]]) -> tp.Dict[str, torch.Tensor]:
+        """"""
+        
         # if current sample doesn't have a certain attribute, replace with empty string
         entries: tp.List[str] = [xi if xi is not None else "" for xi in x]
         if self.normalize_text:
@@ -404,6 +446,23 @@ class T5Conditioner(TextConditioner):
         return inputs
 
     def forward(self, inputs: tp.Dict[str, torch.Tensor]) -> ConditionType:
+        """Returns:
+            - embeds (torch.Tensor): Tensor containing the last hidden state of the T5 model.
+            - mask (torch.Tensor): Tensor containing the attention mask used in the T5 model.
+        Parameters:
+            - inputs (Dict[str, torch.Tensor]): Dictionary containing the input data for the T5 model, including the attention mask.
+        Processing Logic:
+            - Enable gradient calculation if self.finetune is True.
+            - Use autocast to automatically cast the inputs to the correct data type.
+            - Use the T5 model to generate the last hidden state.
+            - Use the output projection layer to project the hidden state to the correct output size.
+            - Apply the attention mask to the projected hidden state.
+            - Return the projected hidden state and the attention mask.
+        Example:
+            inputs = {"input_ids": input_ids, "attention_mask": attention_mask}
+            embeds, mask = forward(inputs)
+            # embeds and mask can then be used for further processing or training."""
+        
         mask = inputs["attention_mask"]
         with torch.set_grad_enabled(self.finetune), self.autocast:
             embeds = self.t5(**inputs).last_hidden_state
@@ -424,10 +483,22 @@ class WaveformConditioner(BaseConditioner):
         device (tp.Union[torch.device, str]): Device.
     """
     def __init__(self, dim: int, output_dim: int, device: tp.Union[torch.device, str]):
+        """"""
+        
         super().__init__(dim, output_dim)
         self.device = device
 
     def tokenize(self, wav_length: WavCondition) -> WavCondition:
+        """Tokenizes the input wav_length and returns a WavCondition object.
+        Parameters:
+            - wav_length (tuple): A tuple containing the wav, length, and path of the input wav_length.
+        Returns:
+            - WavCondition: A WavCondition object with the tokenized wav, length, and path.
+        Processing Logic:
+            - Convert wav and length to device.
+            - Assert that length is not None.
+            - Return WavCondition object."""
+        
         wav, length, path = wav_length
         assert length is not None
         return WavCondition(wav.to(self.device), length.to(self.device), path)
