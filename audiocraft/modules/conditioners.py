@@ -93,21 +93,66 @@ class ConditioningAttributes:
     wav: tp.Dict[str, WavCondition] = field(default_factory=dict)
 
     def __getitem__(self, item):
+        """Returns the value of the attribute specified by the given item.
+        Parameters:
+            - item (str): The name of the attribute to retrieve.
+        Returns:
+            - type: The value of the specified attribute.
+        Processing Logic:
+            - Get attribute value by name.
+            - Use getattr() function.
+            - Return value."""
+        
         return getattr(self, item)
 
     @property
     def text_attributes(self):
+        """Returns a list of all the keys in the text attribute.
+        Parameters:
+            - self (object): The object containing the text attribute.
+        Returns:
+            - list: A list of all the keys in the text attribute.
+        Processing Logic:
+            - Get all keys from self.text.
+            - Return the list of keys."""
+        
         return self.text.keys()
 
     @property
     def wav_attributes(self):
+        """This function returns the keys of the wav attribute.
+        Parameters:
+            - self (object): The object containing the wav attribute.
+        Returns:
+            - list: A list of keys from the wav attribute.
+        Processing Logic:
+            - Get keys from wav attribute.
+            - Return list of keys."""
+        
         return self.wav.keys()
 
     @property
     def attributes(self):
+        """Returns:
+            - dict: A dictionary containing the text and wav attributes of the object.
+        Processing Logic:
+            - Returns a dictionary of attributes.
+            - Contains text and wav attributes.
+            - Does not modify the object.
+            - Does not take any parameters."""
+        
         return {"text": self.text_attributes, "wav": self.wav_attributes}
 
     def to_flat_dict(self):
+        """Converts a nested dictionary into a flat dictionary.
+        Parameters:
+            - self (dict): A nested dictionary.
+        Returns:
+            - dict: A flat dictionary.
+        Processing Logic:
+            - Combine text and wav dictionaries.
+            - Add prefix to keys based on dictionary type."""
+        
         return {
             **{f"text.{k}": v for k, v in self.text.items()},
             **{f"wav.{k}": v for k, v in self.wav.items()},
@@ -115,6 +160,17 @@ class ConditioningAttributes:
 
     @classmethod
     def from_flat_dict(cls, x):
+        """"Converts a flat dictionary into an instance of the provided class."
+        Parameters:
+            - cls (class): The class to be instantiated.
+            - x (dict): A flat dictionary to be converted.
+        Returns:
+            - out (class instance): An instance of the provided class with attributes set according to the keys and values in the input dictionary.
+        Processing Logic:
+            - Split keys into kind and attribute.
+            - Set attribute values for each kind.
+            - Return the instance of the provided class."""
+        
         out = cls()
         for k, v in x.items():
             kind, att = k.split(".")
@@ -128,6 +184,15 @@ class SegmentWithAttributes(SegmentInfo):
     the existing attributes to a dataclass of type ConditioningAttributes.
     """
     def to_condition_attributes(self) -> ConditioningAttributes:
+        """Converts a given object to a ConditioningAttributes object.
+        Parameters:
+            - self (object): The object to be converted.
+        Returns:
+            - ConditioningAttributes: The converted object.
+        Processing Logic:
+            - Convert object to ConditioningAttributes.
+            - Returns the converted object."""
+        
         raise NotImplementedError()
 
 
@@ -140,6 +205,15 @@ class Tokenizer:
 
 
 class WhiteSpaceTokenizer(Tokenizer):
+        """"Runs the model on a list of texts and returns a tuple of tensors containing the predictions and the corresponding labels."
+        Parameters:
+            - texts (List[Optional[str]]): A list of texts to be processed by the model.
+        Returns:
+            - Tuple[Tensor, Tensor]: A tuple containing two tensors, the first one containing the predictions made by the model and the second one containing the corresponding labels.
+        Processing Logic:
+            - Uses the model to make predictions.
+            - Returns the predictions and labels as tensors."""
+        
     """This tokenizer should be used for natural language descriptions.
     For example:
     ["he didn't, know he's going home.", 'shorter sentence'] =>
@@ -150,6 +224,20 @@ class WhiteSpaceTokenizer(Tokenizer):
 
     def __init__(self, n_bins: int, pad_idx: int = 0, language: str = "en_core_web_sm",
                  lemma: bool = True, stopwords: bool = True) -> None:
+        """  # type: ignore
+        Creates an instance of the class with the specified number of bins and optional parameters for preprocessing text data.
+        Parameters:
+            - n_bins (int): Number of bins to be used for the model.
+            - pad_idx (int): Index used for padding sequences, defaults to 0.
+            - language (str): Language to be used for preprocessing, defaults to "en_core_web_sm".
+            - lemma (bool): Flag indicating whether to use lemmatization during preprocessing, defaults to True.
+            - stopwords (bool): Flag indicating whether to remove stopwords during preprocessing, defaults to True.
+        Returns:
+            - None: Does not return any value.
+        Processing Logic:
+            - Loads the specified language model using spaCy.
+            - If the specified language model is not found, downloads it using spaCy's CLI and then loads it."""
+        
         self.n_bins = n_bins
         self.pad_idx = pad_idx
         self.lemma = lemma
@@ -221,10 +309,34 @@ class NoopTokenizer(Tokenizer):
     ["Metal", "Rock", "Classical"] => [0, 223, 51]
     """
     def __init__(self, n_bins: int, pad_idx: int = 0):
+        """"Initializes the class with the given number of bins and optional padding index."
+        Parameters:
+            - n_bins (int): Number of bins to be used for processing.
+            - pad_idx (int): Optional index to be used for padding, defaults to 0.
+        Returns:
+            - None: This function does not return any value.
+        Processing Logic:
+            - Sets the number of bins and padding index.
+            - The padding index defaults to 0 if not specified.
+            - This function is used to initialize the class.
+            - It is called automatically when an object is created."""
+        
         self.n_bins = n_bins
         self.pad_idx = pad_idx
 
     def __call__(self, texts: tp.List[tp.Optional[str]]) -> tp.Tuple[Tensor, Tensor]:
+        """This function takes in a list of optional strings and returns a tuple of two tensors. It replaces any missing strings with a pad token and converts the remaining strings into a hash value using the specified number of bins.
+        Parameters:
+            - texts (List[Optional[str]]): A list of optional strings.
+        Returns:
+            - tokens (Tensor): A tensor containing the converted hash values.
+            - mask (Tensor): A tensor representing the length of each string.
+        Processing Logic:
+            - Replaces missing strings with pad token.
+            - Converts remaining strings into hash values.
+            - Creates a tensor for the hash values and a tensor for the string lengths.
+            - Returns a tuple of the two tensors."""
+        
         output, lengths = [], []
         for text in texts:
             # if current sample doesn't have a certain attribute, replace with pad token
@@ -250,6 +362,18 @@ class BaseConditioner(nn.Module):
         output_dim (int): Output dim of the conditioner.
     """
     def __init__(self, dim, output_dim):
+        """Initializes a linear layer with input dimension dim and output dimension output_dim.
+        Parameters:
+            - dim (int): Input dimension of the linear layer.
+            - output_dim (int): Output dimension of the linear layer.
+        Returns:
+            - None: This function does not return anything.
+        Processing Logic:
+            - Initialize linear layer with given dimensions.
+            - Uses nn.Linear function from PyTorch.
+            - Inherits from super class.
+            - Assigns input and output dimensions to class attributes."""
+        
         super().__init__()
         self.dim = dim
         self.output_dim = output_dim
@@ -291,6 +415,20 @@ class LUTConditioner(TextConditioner):
         pad_idx (int, optional): Index for padding token. Defaults to 0.
     """
     def __init__(self, n_bins: int, dim: int, output_dim: int, tokenizer: str, pad_idx: int = 0):
+        """Initializes the model with the specified number of bins, dimensions, output dimensions, and tokenizer.
+        Parameters:
+            - n_bins (int): Number of bins for the model.
+            - dim (int): Dimensions of the model.
+            - output_dim (int): Output dimensions of the model.
+            - tokenizer (str): Type of tokenizer to use. Options are "whitespace" or "noop".
+            - pad_idx (int, optional): Index of the padding token. Defaults to 0.
+        Returns:
+            - None: This function does not return any value.
+        Processing Logic:
+            - Initializes the model with the specified parameters.
+            - Sets the tokenizer based on the specified type.
+            - Raises a ValueError if an unrecognized tokenizer is specified."""
+        
         super().__init__(dim, output_dim)
         self.embed = nn.Embedding(n_bins, dim)
         self.tokenizer: Tokenizer
@@ -302,12 +440,35 @@ class LUTConditioner(TextConditioner):
             raise ValueError(f"unrecognized tokenizer `{tokenizer}`.")
 
     def tokenize(self, x: tp.List[tp.Optional[str]]) -> tp.Tuple[torch.Tensor, torch.Tensor]:
+        """"Tokenizes a list of strings and returns the tokens and mask tensors."
+        Parameters:
+            - x (List[Optional[str]]): List of strings to be tokenized.
+        Returns:
+            - tokens (torch.Tensor): Tensor containing the tokenized strings.
+            - mask (torch.Tensor): Tensor containing the mask for the tokenized strings.
+        Processing Logic:
+            - Get the device from the embedding weight.
+            - Tokenize the input strings using the tokenizer.
+            - Move the tokens and mask tensors to the device.
+            - Return the token and mask tensors."""
+        
         device = self.embed.weight.device
         tokens, mask = self.tokenizer(x)
         tokens, mask = tokens.to(device), mask.to(device)
         return tokens, mask
 
     def forward(self, inputs: tp.Tuple[torch.Tensor, torch.Tensor]) -> ConditionType:
+        """Returns the embedded tokens and mask.
+        Parameters:
+            - inputs (Tuple[torch.Tensor, torch.Tensor]): A tuple containing the tokens and mask.
+        Returns:
+            - ConditionType: A tuple containing the embedded tokens and mask.
+        Processing Logic:
+            - Embed tokens.
+            - Project output.
+            - Multiply with mask.
+            - Return embedded tokens and mask."""
+        
         tokens, mask = inputs
         embeds = self.embed(tokens)
         embeds = self.output_proj(embeds)
@@ -346,6 +507,61 @@ class T5Conditioner(TextConditioner):
     def __init__(self, name: str, output_dim: int, finetune: bool, device: str,
                  autocast_dtype: tp.Optional[str] = 'float32', word_dropout: float = 0.,
                  normalize_text: bool = False):
+        """Function:
+        def __init__(self, name: str, output_dim: int, finetune: bool, device: str,
+        autocast_dtype: tp.Optional[str] = 'float32', word_dropout: float = 0.,
+        normalize_text: bool = False):
+            Initializes a T5Encoder object with the specified parameters.
+            Parameters:
+                - name (str): Name of the T5 model to use.
+                - output_dim (int): Dimension of the output layer.
+                - finetune (bool): Whether to fine-tune the T5 model.
+                - device (str): Device to use for training.
+                - autocast_dtype (str, optional): Data type to use for autocasting. Defaults to 'float32'.
+                - word_dropout (float, optional): Dropout rate for words. Defaults to 0.
+                - normalize_text (bool, optional): Whether to normalize text. Defaults to False.
+            Returns:
+                - T5Encoder: A T5Encoder object.
+            Processing Logic:
+                - Initializes the T5 model with the specified parameters.
+                - Disables logging temporarily to avoid errors.
+                - Normalizes text if specified.
+            assert name in self.MODELS, f"unrecognized t5 model name (should in {self.MODELS})"
+            super().__init__(self.MODELS_DIMS[name], output_dim)
+            self.device = device
+            self.name = name
+            self.finetune = finetune
+            self.word_dropout = word_dropout
+            if autocast_dtype is None or self.device == 'cpu':
+                self.autocast = TorchAutocast(enabled=False)
+                if self.device != 'cpu':
+                    logger.warning("T5 has no autocast, this might lead to NaN")
+            else:
+                dtype = getattr(torch, autocast_dtype)
+                assert isinstance(dtype, torch.dtype)
+                logger.info(f"T5 will be evaluated with autocast as {autocast_dtype}")
+                self.autocast = TorchAutocast(enabled=True, device_type=self.device, dtype=dtype)
+            # Let's disable logging temporarily because T5 will vomit some errors otherwise.
+            # thanks https://gist.github.com/simon-weber/7853144
+            previous_level = logging.root.manager.disable
+            logging.disable(logging.ERROR)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                try:
+                    self.t5_tokenizer = T5Tokenizer.from_pretrained(name)
+                    t5 = T5EncoderModel.from_pretrained(name).train(mode=finetune)
+                finally:
+                    logging.disable(previous_level)
+            if finetune:
+                self.t5 = t5
+            else:
+                # this makes sure that the t5 models is not part
+                # of the saved checkpoint
+                self.__dict__["t5"] = t5.to(device)
+            self.normalize_text = normalize_text
+            if normalize_text:
+                self.text_normalizer = WhiteSpaceTokenizer(1, lemma=True, stopwords=True)"""
+        
         assert name in self.MODELS, f"unrecognized t5 model name (should in {self.MODELS})"
         super().__init__(self.MODELS_DIMS[name], output_dim)
         self.device = device
@@ -385,6 +601,21 @@ class T5Conditioner(TextConditioner):
             self.text_normalizer = WhiteSpaceTokenizer(1, lemma=True, stopwords=True)
 
     def tokenize(self, x: tp.List[tp.Optional[str]]) -> tp.Dict[str, torch.Tensor]:
+        """, mask
+        Tokenizes a list of strings using the T5 tokenizer and returns a dictionary containing the tokenized inputs and their corresponding attention masks.
+        Parameters:
+            - x (List[Optional[str]]): List of strings to be tokenized.
+            - normalize_text (bool): If True, normalizes the text before tokenization.
+            - word_dropout (float): Probability of dropping a word during training.
+        Returns:
+            - tokenized_inputs (Dict[str, torch.Tensor]): Dictionary containing the tokenized inputs.
+            - attention_mask (torch.Tensor): Tensor containing the attention masks for the tokenized inputs.
+        Processing Logic:
+            - Replaces None values in x with empty strings.
+            - Normalizes the text if self.normalize_text is True.
+            - Drops words from the input strings with probability self.word_dropout during training.
+            - Zeroes out the attention mask indices where the input is non-existent."""
+        
         # if current sample doesn't have a certain attribute, replace with empty string
         entries: tp.List[str] = [xi if xi is not None else "" for xi in x]
         if self.normalize_text:
@@ -404,6 +635,18 @@ class T5Conditioner(TextConditioner):
         return inputs
 
     def forward(self, inputs: tp.Dict[str, torch.Tensor]) -> ConditionType:
+        """This function takes in a dictionary of inputs and returns the output embeddings and attention mask. It uses the T5 model to generate the embeddings and applies a linear projection to the output. The function also handles gradient calculation and autocasting.
+        Parameters:
+            - inputs (Dict[str, torch.Tensor]): A dictionary of inputs, including the attention mask.
+        Returns:
+            - embeds (ConditionType): The output embeddings after applying the linear projection.
+            - mask (torch.Tensor): The attention mask used in the calculation.
+        Processing Logic:
+            - Uses T5 model for embedding generation.
+            - Applies linear projection to output.
+            - Handles gradient calculation and autocasting.
+            - Applies attention mask to embeddings."""
+        
         mask = inputs["attention_mask"]
         with torch.set_grad_enabled(self.finetune), self.autocast:
             embeds = self.t5(**inputs).last_hidden_state
@@ -424,10 +667,25 @@ class WaveformConditioner(BaseConditioner):
         device (tp.Union[torch.device, str]): Device.
     """
     def __init__(self, dim: int, output_dim: int, device: tp.Union[torch.device, str]):
+        """"Initializes the function with the given dimensions and device.
+        Parameters:
+            - dim (int): Dimension of the input.
+            - output_dim (int): Dimension of the output.
+            - device (torch.device or str): Device to be used for computation.
+        Returns:
+            - None: Does not return any value.
+        Processing Logic:
+            - Initialize function with given dimensions.
+            - Set the device for computation.
+            - Inherit from parent class.
+            - Call the __init__ function of parent class.""""
+        
         super().__init__(dim, output_dim)
         self.device = device
 
     def tokenize(self, wav_length: WavCondition) -> WavCondition:
+        """"""
+        
         wav, length, path = wav_length
         assert length is not None
         return WavCondition(wav.to(self.device), length.to(self.device), path)
